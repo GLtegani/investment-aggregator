@@ -51,11 +51,11 @@ public class UserService {
     ) {
         Optional<User> user = this.repository.findById(UUID.fromString(userId));
         if(user.isPresent()) {
-            if(user.get().getUserName() != null) {
+            if(userData.username() != null) {
                 user.get().setUserName(userData.username());
             }
 
-            if(user.get().getEmail() != null) {
+            if(userData.email() != null) {
                 Optional<User> userEmail = this.repository.findUserByEmail(userData.email());
 
                 if(userEmail.isPresent()) {
@@ -65,7 +65,7 @@ public class UserService {
                 }
             }
 
-            if(user.get().getPassword() != null) {
+            if(userData.password() != null) {
                 user.get().setPassword(userData.password());
             }
 
