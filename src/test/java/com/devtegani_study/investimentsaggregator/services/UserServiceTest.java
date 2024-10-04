@@ -30,36 +30,43 @@ class UserServiceTest {
    private UserService userService;
 
    @Captor
-   private ArgumentCaptor<UserDTO> userDTOArgumentCaptor;
+   private ArgumentCaptor<User> userArgumentCaptor;
 
    @Captor
-   private ArgumentCaptor<User> userArgumentCaptor;
+   private ArgumentCaptor<String> userEmailArgumentCaptor;
 
    @Nested
    class CreateUser {
       @Test
       @DisplayName("Should create user with success")
       void shouldCreateUserWithSuccess() {
-//         Arrange
+         // Arrange
          UserDTO userData = new UserDTO(
-            "username",
-            "email@email.com",
-            "12345"
+                 "username",
+                 "email@example.com",
+                 "12345"
          );
-         doReturn(Optional.empty()).when(userRepository).findUserByEmail(userDTOArgumentCaptor.getValue().email());
+         when(userRepository.findUserByEmail(userEmailArgumentCaptor.capture()))
+                 .thenReturn(Optional.empty());
 
          User user = new User(userData);
-         doReturn(user).when(userRepository).save(userArgumentCaptor.capture());
+         when(userRepository.save(userArgumentCaptor.capture())).thenReturn(user);
 
-//         Act
-         User outputUser = userService.createUser(userDTOArgumentCaptor.capture());
-//         Assert
-         UserDTO userDTOCaptured = userDTOArgumentCaptor.getValue();
+         // Act
+         User createdUser = userService.createUser(userData);
 
-         assertNotNull(outputUser);
-         assertEquals(userData.username(), userDTOCaptured.username());
-         assertEquals(userData.email(), userDTOCaptured.email());
-         assertEquals(userData.password(), userDTOCaptured.password());
+         // Assert
+         User userCaptured = userArgumentCaptor.getValue();
+         String userEmailCaptured = userEmailArgumentCaptor.getValue();
+
+         verify(userRepository).findUserByEmail(userEmailCaptured);
+         verify(userRepository).save(userCaptured);
+         assertNotNull(createdUser);
+         assertEquals(userData.email(), userEmailCaptured);
+         assertEquals(userData.username(), userCaptured.getUserName());
+         assertEquals(userData.email(), userCaptured.getEmail());
+         assertEquals(userData.password(), userCaptured.getPassword());
+         assertEquals(userCaptured.getEmail(), userEmailCaptured);
       }
 
       @Test
