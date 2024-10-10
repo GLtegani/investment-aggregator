@@ -17,7 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -163,23 +162,111 @@ class UserServiceTest {
    @Nested
    class DeleteUserById {
       @Test
-      @DisplayName("Should delete user by id with success")
-      void shouldDeleteUserByIdWithSuccess() {
+      @DisplayName("Should delete user by id when user exist")
+      void shouldDeleteUserByIdWhenUserExist() {
 //         ARRANGE
-         User user = userFactory.createUser();
+         UUID userId = UUID.randomUUID();
          when(userRepository.existsById(userIdArgumentCaptor.capture()))
                  .thenReturn(true);
+         doNothing()
+                 .when(userRepository)
+                 .deleteById(userIdArgumentCaptor.capture());
 
 //         ACT
-         userService.deleteUserById(user.getUserId().toString());
+         userService.deleteUserById(userId.toString());
 
 //         ASSERT
-         verify(userRepository, times(1))
-                 .deleteById(userIdArgumentCaptor.capture());
          List<UUID> userIdCaptured = userIdArgumentCaptor.getAllValues();
          verify(userRepository, times(1))
                  .existsById(userIdCaptured.get(0));
+         verify(userRepository, times(1))
+                 .deleteById(userIdCaptured.get(1));
          assertEquals(userIdCaptured.get(0), userIdCaptured.get(1));
+         assertEquals(userId, userIdCaptured.get(0));
+         assertEquals(userId, userIdCaptured.get(1));
+      }
+
+      @Test
+      @DisplayName("Should throw EntityNotFoundException when user doesn't exist")
+      void shouldThrowEntityNotFoundExceptionWhenUserDoesntExist() {
+//         ARRANGE
+         UUID userId = UUID.randomUUID();
+         when(userRepository.existsById(userIdArgumentCaptor.capture()))
+                 .thenReturn(false);
+
+//         ACT
+         assertThrows(
+                 EntityNotFoundException.class
+                 , () -> userService
+                         .deleteUserById(userId.toString())
+         );
+
+//         ASSERT
+         UUID userIdCaptured = userIdArgumentCaptor.getValue();
+         verify(userRepository, times(1))
+                 .existsById(userIdCaptured);
+         verify(userRepository, never())
+                 .deleteById(any());
+         assertEquals(userId, userIdCaptured);
+      }
+   }
+   
+   @Nested
+   class UpdateUserById {
+      @Test
+      @DisplayName("Should update user with success")
+      void shouldUpdateUserWithSuccess() {
+//         ARRANGE
+         User user = userFactory.createUser();
+         UserDTO userData = userDTOFactory.createUserDTO();
+
+         when(userRepository.findById(userIdArgumentCaptor.capture()))
+                 .thenReturn(Optional.of(user));
+         when(userRepository.findUserByEmail(userEmailArgumentCaptor.capture()))
+                 .thenReturn(Optional.empty());
+         when(userRepository.save(userArgumentCaptor.capture()))
+                 .thenReturn(user);
+
+//         ACT
+         User userResponse = userService.updateUserById(
+                 user.getUserId().toString(),
+                 userData
+         );
+
+//         ASSERT
+         UUID userIdCaptured = userIdArgumentCaptor.getValue();
+         String userEmailCaptured = userEmailArgumentCaptor.getValue();
+         User userCaptured = userArgumentCaptor.getValue();
+
+         verify(userRepository, times(1))
+                 .findById(userIdCaptured);
+         verify(userRepository, times(1))
+                 .findUserByEmail(userEmailCaptured);
+         verify(userRepository, times(1))
+                 .save(userCaptured);
+
+         assertNotNull(userResponse);
+         assertEquals(userCaptured.getUserName(), userResponse.getUserName());
+         assertEquals(userCaptured.getEmail(), userResponse.getEmail());
+         assertEquals(userCaptured.getPassword(), userResponse.getPassword());
+         assertEquals(userCaptured.getUserId(), userResponse.getUserId());
+         assertEquals(userCaptured.getCreationTimestamp(), userResponse.getCreationTimestamp());
+         assertEquals(userCaptured.getUpdateTimestamp(), userResponse.getUpdateTimestamp());
+         assertEquals(user.getUserId(), userCaptured.getUserId());
+         assertEquals(user.getCreationTimestamp(), userCaptured.getCreationTimestamp());
+         assertEquals(user.getUserName(), userCaptured.getUserName());
+         assertEquals(user.getEmail(), userCaptured.getEmail());
+         assertEquals(user.getPassword(), userCaptured.getPassword());
+         assertEquals(user.getUpdateTimestamp(), userCaptured.getUpdateTimestamp());
+         assertEquals(user.getUserId(), userResponse.getUserId());
+         assertEquals(user.getCreationTimestamp(), userResponse.getCreationTimestamp());
+         assertEquals(user.getUserName(), userResponse.getUserName());
+         assertEquals(user.getEmail(), userResponse.getEmail());
+         assertEquals(user.getPassword(), userResponse.getPassword());
+         assertEquals(user.getUpdateTimestamp(), userResponse.getUpdateTimestamp());
+         assertEquals(userData.email(), userEmailCaptured);
+         assertEquals(userData.email(), userCaptured.getEmail());
+         assertEquals(userData.email(), user.getEmail());
       }
    }
 

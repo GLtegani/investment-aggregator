@@ -69,8 +69,7 @@ public class UserService {
                 user.get().setPassword(userData.password());
             }
 
-            this.repository.save(user.get());
-            return user.get();
+            return this.repository.save(user.get());
         } else {
             throw new EntityNotFoundException();
         }
