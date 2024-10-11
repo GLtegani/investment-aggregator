@@ -21,10 +21,10 @@ public class UserService {
         Optional<User> userExist = this.repository.findUserByEmail(userData.email());
         if(userExist.isPresent()) {
             throw new UserAlreadyExistException();
-        } else {
-            User user = new User(userData);
-            return this.repository.save(user);
         }
+
+        User user = new User(userData);
+        return this.repository.save(user);
     }
 
     public final User getUserById(String userId) {
@@ -37,12 +37,11 @@ public class UserService {
 
     public final void deleteUserById(String userId) {
         boolean userExist = this.repository.existsById(UUID.fromString(userId));
-
-        if(userExist) {
-            this.repository.deleteById(UUID.fromString(userId));
-        } else {
+        if(!userExist) {
             throw new EntityNotFoundException();
         }
+
+        this.repository.deleteById(UUID.fromString(userId));
     }
 
     public final User updateUserById(
@@ -50,28 +49,28 @@ public class UserService {
             UserDTO userData
     ) {
         Optional<User> user = this.repository.findById(UUID.fromString(userId));
-        if(user.isPresent()) {
-            if(userData.username() != null) {
-                user.get().setUserName(userData.username());
-            }
-
-            if(userData.email() != null) {
-                Optional<User> userEmail = this.repository.findUserByEmail(userData.email());
-
-                if(userEmail.isPresent()) {
-                    throw new UserAlreadyExistException();
-                } else {
-                    user.get().setEmail(userData.email());
-                }
-            }
-
-            if(userData.password() != null) {
-                user.get().setPassword(userData.password());
-            }
-
-            return this.repository.save(user.get());
-        } else {
+        if(user.isEmpty()) {
             throw new EntityNotFoundException();
         }
+
+        if(userData.email() != null) {
+            Optional<User> userEmail = this.repository.findUserByEmail(userData.email());
+
+            if(userEmail.isPresent()) {
+                throw new UserAlreadyExistException();
+            }
+
+            user.get().setEmail(userData.email());
+        }
+
+        if(userData.username() != null) {
+            user.get().setUserName(userData.username());
+        }
+
+        if(userData.password() != null) {
+            user.get().setPassword(userData.password());
+        }
+
+        return this.repository.save(user.get());
     }
 }

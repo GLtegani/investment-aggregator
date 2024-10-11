@@ -188,7 +188,7 @@ class UserServiceTest {
 
       @Test
       @DisplayName("Should throw EntityNotFoundException when user doesn't exist")
-      void shouldThrowEntityNotFoundExceptionWhenUserDoesntExist() {
+      void shouldThrowEntityNotFoundExceptionWhenUserDoesNotExist() {
 //         ARRANGE
          UUID userId = UUID.randomUUID();
          when(userRepository.existsById(userIdArgumentCaptor.capture()))
@@ -267,6 +267,74 @@ class UserServiceTest {
          assertEquals(userData.email(), userEmailCaptured);
          assertEquals(userData.email(), userCaptured.getEmail());
          assertEquals(userData.email(), user.getEmail());
+         assertEquals(userData.email(), userResponse.getEmail());
+         assertEquals(userData.username(), user.getUserName());
+         assertEquals(userData.password(), user.getPassword());
+         assertEquals(userData.username(), userCaptured.getUserName());
+         assertEquals(userData.password(), userCaptured.getPassword());
+         assertEquals(userData.username(), userResponse.getUserName());
+         assertEquals(userData.password(), userResponse.getPassword());
+      }
+
+      @Test
+      @DisplayName("Should throw EntityNotFoundException when user does not exist")
+      void shouldThrowEntityNotFoundExceptionWhenUserDoesNotExist() {
+//         ARRANGE
+         UUID userId = UUID.randomUUID();
+         UserDTO userData = userDTOFactory.createUserDTO();
+
+         when(userRepository.findById(userIdArgumentCaptor.capture()))
+                 .thenReturn(Optional.empty());
+
+//         ACT & ASSERT
+         assertThrows(
+                 EntityNotFoundException.class
+                 , () -> userService
+                         .updateUserById(userId.toString(), userData)
+         );
+         UUID userIdCaptured = userIdArgumentCaptor.getValue();
+
+         verify(userRepository, times(1))
+                 .findById(userIdCaptured);
+         verify(userRepository, never())
+                 .findUserByEmail(any());
+         verify(userRepository, never())
+                 .save(any());
+
+         assertEquals(userId, userIdCaptured);
+      }
+
+      @Test
+      @DisplayName("Should throw UserAlreadyExistException when user email is found")
+      void shouldThrowUserAlreadyExistExceptionWhenUserEmailIsFound() {
+//         ARRANGE
+         User user = userFactory.createUser();
+         UserDTO userData = userDTOFactory.createUserDTO();
+
+         when(userRepository.findById(userIdArgumentCaptor.capture()))
+                 .thenReturn(Optional.of(user));
+         when(userRepository.findUserByEmail(userEmailArgumentCaptor.capture()))
+                 .thenReturn(Optional.of(user));
+
+//         ACT & ASSERT
+         assertThrows(
+                 UserAlreadyExistException.class
+                 , () -> userService
+                         .updateUserById(user.getUserId().toString(), userData)
+         );
+
+         UUID userIdCaptured = userIdArgumentCaptor.getValue();
+         String userEmailCaptured = userEmailArgumentCaptor.getValue();
+
+         verify(userRepository, times(1))
+                 .findById(userIdCaptured);
+         verify(userRepository, times(1))
+                 .findUserByEmail(userEmailCaptured);
+         verify(userRepository, never())
+                 .save(any());
+
+         assertEquals(user.getUserId(), userIdCaptured);
+         assertEquals(userData.email(), userEmailCaptured);
       }
    }
 
